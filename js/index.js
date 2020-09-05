@@ -2,125 +2,110 @@ document.addEventListener('DOMContentLoaded', e => {
     //create a variable for the monster container
     // create a form element to input the monster data
     //create a number variable for pagination
-    
-    let container = document.querySelector('#monster-container')
+
+    let container = document.getElementById('monster-container')
+    let number = 1 //the data will start from 'page number 1' 
     let form = document.createElement('form')
     let baseUrl = "http://localhost:3000/monsters/"
-    let number = 1
 
-    //get the monster data
-    function fetchData(number) {
+    
+    //create the function to FETCH the data
+    const getData = (number) => {
         fetch(baseUrl + '?_limit=50&_page=' + number)
         .then(response => response.json())
-        .then(monsters => renderMonsters(monsters))
+        .then(monsters => renderMonsters(monsters)) //aspirational code to render all the monsters
     }
 
-    //create the 'renderMonsters' function mentioned directly above
-    function renderMonsters(monsters) {
-        for (const monster of monsters) {
-            renderMonster(monster)
-            // console.log(monster)
+    //create the function to render all monsters (Plural)
+    function renderMonsters(monsters){
+        for (const monster of monsters){
+            renderMonster(monster) //another aspirational code to render each indvidual monster
         }
     }
 
-    //create the function to render a single monster, mentioned directly above
+    //create the function to render each individual monster
     function renderMonster(monster) {
-        let div = document.createElement('div') //create a variable for the element that will contain the monster
-        div.classList.add('monster')  // add the monster instance into the element created above
-        div.innerHTML = `    
-        <h1>${monster.name}</h1>
-        <h3>Age: ${monster.age}</h3>
-        <p>Bio: ${monster.description}</p>` //create the html tags for the info of the monster
-
-        container.append(div) //append the newly created monster to the monster-container --> line 6
+        //create the element that will hold each monster
+        //create the inner html
+        //append the element to the container (container was assigned to a variable in the outermost scope)
+        let div = document.createElement('div')
+        div.classList.add('monster')
+        div.dataset.id = monster.id
+        div.innerHTML = `
+        <h2>Name: ${monster.name}</h2>
+        <h4>Age: ${monster.age}</h4>
+        <p>Bio: ${monster.description}</p>
+        `
+        container.append(div)
     }
 
-    // create the form to manually create new instances of a monster
     function createForm() {
-        //create a variable to grab the area where a new monster will be contained
-        let formDiv = document.querySelector("#create-monster")
-
-        //use the 'form' variable created at the outermost scope 
-        form.classList.add('form')  //add the 'form' class to 'form' element created on line 7
+        let formContainer = document.getElementById('create-monster')
+        formContainer.insertAdjacentElement('beforeend', form)
         form.innerHTML = `
-        <input type="text" name="name" value="name">
-        <input type="text" name="age" value="age">
-        <input type="text" name="description" value="description">
-        <input type="submit" value="Create Monster"> 
-        ` //create all the individual input fields for each required piece of information
-
-        //append the form to the formDiv
-        formDiv.append(form)
+            <input id="name" placeholder="name...">
+            <input id="age" placeholder="age...">
+            <input id="description" placeholder="description...">
+            <button>Create</button>
+        `
     }
 
-    //create an event listener for the 'submit' button for the create monster form
-    form.addEventListener('submit', e => {
-        e.preventDefault()
+    //create a 'submit' listener for the form to create a new monster and persist it to the DOM
+    const submitHandler = () => {
+        document.addEventListener('submit', e => {
+            e.preventDefault()
+            name = form.name.value
+            age = form.age.value
+            description = form.description.value
+            // console.log(name, age, description)
+            options = {
+                method: "POST",
+                headers: {
+                    "content-type": "application/json",
+                    "accept": "application/json"
+                },
+                body: JSON.stringify({
+                    name: name,
+                    age: age,
+                    description: description
+                })
+            }
+            fetch(baseUrl, options)
+            .then(response => response.json())
+            .then(renderMonster)
+        })
+    }
 
-        // create variables for each form field
-        let name = form.name.value
-        let age = form.age.value
-        let bio = form.description.value
-
-        // for simplicity, create a variable that contains the details for the 
-        // fetch-POST method
-        options = {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            },
-            body: JSON.stringify({
-                name: name,
-                age: age,
-                description: bio
-            })
-        }
-        
-        //use the fetch-POST method to update the DOM
-        fetch('http://localhost:3000/monsters', options)
-        .then(response => response.json())
-        .then(monster => renderMonster(monster)) //use the renderMonster function created aove to show/render the newly created monster
-    })
-
-
-    //create function to remove the current list of monsters --> for pagination function afterwards
     function removeMonsters() {
-        let monsters = document.querySelectorAll('.monster') // select all instances with the class of "monster"
-        
-        // use the for...of iterator to iterate through the monsters variable above
-        // that contains all instances of monster on the page
-        // and create a nested function to response to each of those instances
-        // ('*') means to select any tag, in this case, any tag within the container ---> meaning every instance
-        // chain with a .forEach method to remove each indiviual instance
+        //create a variable to select all of the monsters on the current page
+        let monsters = document.querySelectorAll('.monster')
+
+        //now, iterate through each monster instance and remove them somehow
         for (const monster of monsters) {
             container.querySelectorAll('*').forEach(i => i.remove())
-        } 
+        }
     }
 
+    const clickHandler = () => {
+        document.addEventListener('click', e => {
+            // console.log(e.target)
+            if (e.target.matches('#back') && number > 1) {
+                removeMonsters() //aspirational code to clear out the page, then render the new set of monsters
+                number = number - 1
+                getData(number)
+            } else if (e.target.matches('#forward')) {
+                removeMonsters() //aspirational code to clear out the page, then render the new set of monsters
+                number = number + 1
+                getData(number)
+            }
+        })
+    }
 
-    //create a function for pagination
-    // document will need an event listener for 'click'
-    // conditional for the 'back' and 'forward' buttons
-    // number variable created at outermost scope
-    document.addEventListener('click', e => {
-        // for the back button, make sure the click matches the button with the id of "back"
-        // and make sure the page number is greater than 1, sine there is no page 0
-        if (e.target.matches("#back") && number > 1) {
-            removeMonsters()
-            number = number - 1
-            fetchData(number)
-        } else if (e.target.matches("#forward")) {
-            removeMonsters()
-            number = number + 1
-            fetchData(number)
-        }
-    })
+   
 
-
-
-
-
-    fetchData()
+    //invoke appropriate functions
+    getData()
+    submitHandler()
+    clickHandler()
     createForm()
 })
